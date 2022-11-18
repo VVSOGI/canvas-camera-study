@@ -1,82 +1,115 @@
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+// const double = document.getElementById("double") as HTMLdoubleElement;
+
 const ctx = canvas.getContext("2d", {
   willReadFrequently: true,
 });
 
 // ctx.scale(0.5, 0.5);
 const video = document.getElementById("video") as HTMLVideoElement;
+const viewpt = document.getElementById("viewpt") as HTMLVideoElement;
+
+viewpt.onloadeddata = () => {
+  (window as any).viewpt = viewpt;
+  viewpt.autoplay = true;
+};
 
 video.onloadeddata = () => {
-  render(300, 150);
-  canvas.width = 1000;
-  canvas.height = 400;
-  const stream = canvas.captureStream(30);
+  const black = [122, 122, 122, 255];
+  const ratio = 10;
+  const width = 1200;
+  const height = 600;
+  render(video, width, height, ratio, black);
+  canvas.width = width + ratio * 4;
+  canvas.height = height + ratio * 4;
+  const stream = canvas.captureStream(60);
 
   const makeVideo = document.createElement(
     "video"
   ) as HTMLElement as HTMLVideoElement;
 
-  makeVideo.srcObject = stream;
+  // makeVideo.srcObject = stream;
   makeVideo.autoplay = true;
   makeVideo.setAttribute("id", "maked-video");
 
-  document.body.appendChild(makeVideo);
+  // document.body.appendChild(makeVideo);
 };
 
-function render(width: number, height: number) {
+function findFrontPosition() {}
+
+function findBackPosition() {}
+
+function render(
+  video: HTMLVideoElement,
+  width: number,
+  height: number,
+  ratio: number,
+  coveredColor: number[]
+) {
+  // console.time();
   ctx.drawImage(video, 0, 0, width, height);
-  const totalRatio = 30;
-  const sideRatio = totalRatio * 16;
-  const rowRatio = (width * height * 4) / height + sideRatio;
+  const [red, green, blue, alpha] = coveredColor;
+  const widthNumbers = (width * height * 4) / height;
+  const sideRatio = ratio * 16;
+  const rowRatio = widthNumbers + sideRatio;
 
-  const array = new Array(rowRatio * totalRatio).fill(0);
-  const data = ctx.getImageData(0, 0, width, height).data;
-  const rgbaArray = [];
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const a = data[i + 3];
-    rgbaArray.push([r, g, b, a]);
+  const array = new Array(rowRatio * ratio).fill(0);
+  console.time("좌우 영상");
+  const data: any[] = [...ctx.getImageData(0, 0, width, height).data];
+  console.timeEnd("좌우 영상");
+  const fixedData = [];
+  for (let i = 0; i < ratio; i += 1) {
+    fixedData.push(red);
+    fixedData.push(green);
+    fixedData.push(blue);
+    fixedData.push(alpha);
   }
 
-  for (let i = 0; i < rgbaArray.length; i += width) {
-    // middle rgba fix color
-    rgbaArray[i + width / 2 - 1] = [120, 120, 120, 255];
+  // console.time("좌우 영상");
+  for (let i = 0; i < data.length - 1; i += widthNumbers) {
+    data.splice(i, 1, [...fixedData, data[i]]);
+    data.splice(i + widthNumbers - 1, 1, [
+      data[i + widthNumbers - 1],
+      ...fixedData,
+    ]);
+    data.splice(i + widthNumbers / 2, 1, [
+      ...fixedData,
+      ...fixedData,
+      data[i + widthNumbers / 2],
+    ]);
+  }
+  // console.timeEnd("좌우 영상");
+  const createdUint8Array = [];
 
-    const frontRgbaCoordinates = rgbaArray[i];
-    const backRgbaCoordinates = rgbaArray[i + width - 1];
-    const middleRgbaCoordinates = rgbaArray[i + width / 2 - 1];
+  // console.time("이중 배열");
 
-    for (let j = 0; j < totalRatio; j += 1) {
-      frontRgbaCoordinates.unshift(...[120, 120, 120, 255]);
-      backRgbaCoordinates.push(...[120, 120, 120, 255]);
-      middleRgbaCoordinates.push(...[120, 120, 120, 255]);
-      middleRgbaCoordinates.unshift(...[120, 120, 120, 255]);
+  for (let i = 0; i < data.length; i++) {
+    if (typeof data[i] === "object") {
+      createdUint8Array.push(...data[i]);
+      continue;
     }
+    createdUint8Array.push(data[i]);
   }
 
-  const fixedArray = rgbaArray.flat();
+  // console.timeEnd("이중 배열");
+  // console.time("위아래 여백");
 
   for (let i = 0; i < array.length - 3; i += 4) {
-    array[i] = 120;
-    array[i + 1] = 120;
-    array[i + 2] = 120;
-    array[i + 3] = 255;
+    array[i] = red;
+    array[i + 1] = green;
+    array[i + 2] = blue;
+    array[i + 3] = alpha;
   }
-
-  const testing = [...array, ...fixedArray, ...array];
-
+  // console.timeEnd("위아래 여백");
+  // console.time("최종 병합");
+  const testing = [...array, ...createdUint8Array, ...array];
+  // console.timeEnd("최종 병합");
   const arr = new Uint8ClampedArray(testing);
-  const imageData = new ImageData(
-    arr,
-    width + totalRatio * 4,
-    height + totalRatio * 2
-  );
+  const imageData = new ImageData(arr, width + ratio * 4, height + ratio * 2);
   ctx.putImageData(imageData, 0, 0);
 
+  // console.timeEnd();
   setTimeout(() => {
-    render(width, height);
-  }, 1000 / 25);
+    render(video, width, height, ratio, coveredColor);
+  }, 1000 / 60);
 }
