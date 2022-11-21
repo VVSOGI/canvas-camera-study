@@ -20,5 +20,9 @@ body {
 
 canvas {
   position: absolute;
-  top: 10%;
+  top: 21%;
+}
+
+#view {
+  z-index: 10;
 }

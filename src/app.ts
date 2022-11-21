@@ -1,13 +1,16 @@
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-// const double = document.getElementById("double") as HTMLdoubleElement;
+const view = document.getElementById("view") as HTMLCanvasElement;
 
 const ctx = canvas.getContext("2d", {
   willReadFrequently: true,
 });
+const viewCtx = view.getContext("2d");
 
 // ctx.scale(0.5, 0.5);
 const video = document.getElementById("video") as HTMLVideoElement;
 const viewpt = document.getElementById("viewpt") as HTMLVideoElement;
+
+ctx.beginPath();
 
 viewpt.onloadeddata = () => {
   (window as any).viewpt = viewpt;
@@ -15,13 +18,16 @@ viewpt.onloadeddata = () => {
 };
 
 video.onloadeddata = () => {
-  const black = [122, 122, 122, 255];
-  const ratio = 100;
-  const width = 1024;
-  const height = 500;
-  render(video, width, height, ratio, black);
+  const ratio = 200;
+  const width = 1440;
+  const height = 720;
+  requestAnimationFrame(() => render(video, width, height, ratio));
   canvas.width = width + ratio * 4;
-  canvas.height = height + ratio * 4;
+  canvas.height = height + ratio * 2;
+  view.width = canvas.width;
+  view.height = canvas.height;
+  viewCtx.fillRect(0, 0, view.width, view.height);
+
   const stream = canvas.captureStream(60);
 
   const makeVideo = document.createElement(
@@ -35,97 +41,26 @@ video.onloadeddata = () => {
   // document.body.appendChild(makeVideo);
 };
 
-function findFrontPosition() {}
-
-function findBackPosition() {}
-
 function render(
   video: HTMLVideoElement,
-  width: number,
-  height: number,
-  ratio: number,
-  coveredColor: number[]
+  videoWidth: number,
+  videoHeight: number,
+  ratio: number
 ) {
-  console.time();
-  ctx.drawImage(video, 0, 0, width, height);
-  const [red, green, blue, alpha] = coveredColor;
-  const widthNumbers = (width * height * 4) / height;
-  const sideRatio = ratio * 16;
-  const rowRatio = widthNumbers + sideRatio;
+  ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+  const left = ctx.getImageData(0, 0, videoWidth / 2, videoHeight);
+  const right = ctx.getImageData(
+    videoWidth / 2,
+    0,
+    videoWidth / 2,
+    videoHeight
+  );
+  viewCtx.putImageData(right, canvas.width / 2 + ratio, ratio);
+  viewCtx.putImageData(left, ratio, ratio);
 
-  const array = new Array(rowRatio * ratio).fill(0);
-  const totalData = ctx.getImageData(0, 0, width, height).data;
-  const data: any[] = [];
-  for (let i = 0; i < totalData.length; i++) {
-    data[i] = totalData[i];
-  }
-  const fixedData = [];
-  for (let i = 0; i < ratio; i += 1) {
-    fixedData.push(red);
-    fixedData.push(green);
-    fixedData.push(blue);
-    fixedData.push(alpha);
-  }
+  ctx.moveTo(videoWidth / 2, 0);
+  ctx.lineTo(videoWidth / 2, 0);
+  ctx.lineTo(videoWidth / 2, videoHeight);
 
-  // console.time("좌우 영상");
-  for (let i = 0; i < data.length - 1; i += widthNumbers) {
-    data.splice(i, 1, [...fixedData, data[i]]);
-    data.splice(i + widthNumbers - 1, 1, [
-      data[i + widthNumbers - 1],
-      ...fixedData,
-    ]);
-    data.splice(i + widthNumbers / 2, 1, [
-      ...fixedData,
-      ...fixedData,
-      data[i + widthNumbers / 2],
-    ]);
-  }
-
-  // console.timeEnd("좌우 영상");
-  const createdUint8Array = [];
-
-  // console.time("이중 배열");
-
-  for (let i = 0; i < data.length; i++) {
-    if (typeof data[i] === "object") {
-      for (let j = 0; j < data[i].length; j++) {
-        createdUint8Array.push(data[i][j]);
-      }
-      continue;
-    }
-    createdUint8Array.push(data[i]);
-  }
-
-  // console.timeEnd("이중 배열");
-  for (let i = 0; i < array.length - 3; i += 4) {
-    array[i] = red;
-    array[i + 1] = green;
-    array[i + 2] = blue;
-    array[i + 3] = alpha;
-  }
-  // console.time("최종 병합");
-  // const testing = [...array, ...createdUint8Array, ...array];
-
-  const testing = [];
-  for (let i = 0; i < array.length; i++) {
-    testing[i] = array[i];
-  }
-
-  for (let i = 0; i < createdUint8Array.length; i++) {
-    testing[testing.length] = createdUint8Array[i];
-  }
-
-  for (let i = 0; i < array.length; i++) {
-    testing[testing.length] = array[i];
-  }
-
-  // console.timeEnd("최종 병합");
-  const arr = new Uint8ClampedArray(testing);
-  const imageData = new ImageData(arr, width + ratio * 4, height + ratio * 2);
-  ctx.putImageData(imageData, 0, 0);
-
-  console.timeEnd();
-  setTimeout(() => {
-    render(video, width, height, ratio, coveredColor);
-  }, 1000 / 30);
+  requestAnimationFrame(() => render(video, videoWidth, videoHeight, ratio));
 }
