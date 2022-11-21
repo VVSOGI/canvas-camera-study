@@ -6,7 +6,6 @@ const ctx = canvas.getContext("2d", {
 });
 const viewCtx = view.getContext("2d");
 
-// ctx.scale(0.5, 0.5);
 const video = document.getElementById("video") as HTMLVideoElement;
 const viewpt = document.getElementById("viewpt") as HTMLVideoElement;
 
