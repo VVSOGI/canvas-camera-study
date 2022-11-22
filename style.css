@@ -18,11 +18,28 @@ body {
   z-index: 1000;
 }
 
-canvas {
-  position: absolute;
-  top: 21%;
+#canvas {
+  display: none;
 }
 
-#view {
+#viewpt {
+  display: none;
+}
+
+#video {
+  width: 20%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 10;
+  opacity: 0;
+}
+
+#maked-video {
+  width: fit-content;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  /* background-color: #000; */
 }

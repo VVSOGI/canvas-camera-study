@@ -9,15 +9,8 @@ const viewCtx = view.getContext("2d");
 const video = document.getElementById("video") as HTMLVideoElement;
 const viewpt = document.getElementById("viewpt") as HTMLVideoElement;
 
-ctx.beginPath();
-
-viewpt.onloadeddata = () => {
-  (window as any).viewpt = viewpt;
-  viewpt.autoplay = true;
-};
-
 video.onloadeddata = () => {
-  const ratio = 200;
+  const ratio = 100;
   const width = 1440;
   const height = 720;
   requestAnimationFrame(() => render(video, width, height, ratio));
@@ -27,7 +20,7 @@ video.onloadeddata = () => {
   view.height = canvas.height;
   viewCtx.fillRect(0, 0, view.width, view.height);
 
-  const stream = canvas.captureStream(60);
+  const stream = view.captureStream(60);
 
   const makeVideo = document.createElement(
     "video"
@@ -37,7 +30,7 @@ video.onloadeddata = () => {
   makeVideo.autoplay = true;
   makeVideo.setAttribute("id", "maked-video");
 
-  // document.body.appendChild(makeVideo);
+  document.body.appendChild(makeVideo);
 };
 
 function render(
@@ -54,12 +47,9 @@ function render(
     videoWidth / 2,
     videoHeight
   );
+
   viewCtx.putImageData(right, canvas.width / 2 + ratio, ratio);
   viewCtx.putImageData(left, ratio, ratio);
-
-  ctx.moveTo(videoWidth / 2, 0);
-  ctx.lineTo(videoWidth / 2, 0);
-  ctx.lineTo(videoWidth / 2, videoHeight);
 
   requestAnimationFrame(() => render(video, videoWidth, videoHeight, ratio));
 }
